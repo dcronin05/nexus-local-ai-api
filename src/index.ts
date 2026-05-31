@@ -31,7 +31,11 @@ async function main(): Promise<void> {
   const openRouterDefaultModel = process.env.OPENROUTER_DEFAULT_MODEL || 'google/gemma-3-27b-it:free';
   const openRouterAppTitle = process.env.OPENROUTER_APP_TITLE || 'Nexus AI Gateway';
 
-  const ollamaHost = process.env.OLLAMA_HOST || 'http://localhost:11434';
+  const ollamaHostRaw = process.env.OLLAMA_HOST || 'localhost';
+  const ollamaPort = process.env.OLLAMA_PORT || '11434';
+  const ollamaHost = ollamaHostRaw.startsWith('http')
+    ? ollamaHostRaw
+    : `http://${ollamaHostRaw}:${ollamaPort}`;
   const ollamaDefaultModel = process.env.OLLAMA_DEFAULT_MODEL || 'llama3.1';
 
   const providerPriorityStr = process.env.AI_PROVIDER_PRIORITY || 'openrouter,ollama';
