@@ -21,6 +21,7 @@ import {
   corsConfig,
   errorHandler,
 } from './middleware';
+import { createAdminRouter } from './adminRoutes';
 import { ModelRouter } from '../core/routing/ModelRouter';
 import { ModelRegistry } from '../core/routing/ModelRegistry';
 import { UsageTracker } from '../core/tracking/UsageTracker';
@@ -184,6 +185,9 @@ export class NexusServer {
     this._app.get('/api/usage', this.handleUsage.bind(this));
     this._app.get('/api/credits', this.handleCredits.bind(this));
     this._app.get('/api/config', this.handleConfig.bind(this));
+
+    // Admin routes — remote management (update, restart, logs, version)
+    this._app.use('/api/admin', createAdminRouter());
   }
 
   /* ----- route handlers ----- */
@@ -541,6 +545,12 @@ export class NexusServer {
           '║    GET  /api/usage            — Usage stats       ║',
           '║    GET  /api/credits          — Credit balance    ║',
           '║    GET  /api/config           — Configuration     ║',
+          '╠══════════════════════════════════════════════════╣',
+          '║  Admin:                                           ║',
+          '║    POST /api/admin/update      — Self-update (git)║',
+          '║    POST /api/admin/restart     — Restart process  ║',
+          '║    GET  /api/admin/logs        — Recent logs      ║',
+          '║    GET  /api/admin/version     — Version info     ║',
           '╚══════════════════════════════════════════════════╝',
           '',
         ].join('\n');
