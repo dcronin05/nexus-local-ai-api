@@ -214,6 +214,8 @@ export class NexusServer {
         top_p,
         stop,
         stream,
+        tools,
+        tool_choice,
       } = req.body as {
         model?: string;
         messages: ChatMessage[];
@@ -222,6 +224,8 @@ export class NexusServer {
         top_p?: number;
         stop?: string | string[];
         stream?: boolean;
+        tools?: any[];
+        tool_choice?: any;
       };
 
       if (!messages || !Array.isArray(messages) || messages.length === 0) {
@@ -255,6 +259,12 @@ export class NexusServer {
       if (stream !== undefined) {
         options.stream = stream;
       }
+      if (tools !== undefined && Array.isArray(tools) && tools.length > 0) {
+        options.tools = tools;
+      }
+      if (tool_choice !== undefined) {
+        options.toolChoice = tool_choice;
+      }
 
       /* --- Nexus custom headers (logged for tracing) -------------- */
       const nexusTaskHeader: string | undefined =
@@ -287,6 +297,16 @@ export class NexusServer {
       this._usageTracker.record(usageRecord);
 
       /* --- Build OpenAI-compatible response ----------------------- */
+      const choiceMessage: Record<string, unknown> = {
+        role: 'assistant' as const,
+        content: result.content,
+      };
+
+      // Include tool_calls in the response if the model returned them
+      if (result.toolCalls && result.toolCalls.length > 0) {
+        choiceMessage.tool_calls = result.toolCalls;
+      }
+
       const responseBody = {
         id: `nexus-${crypto.randomUUID()}`,
         object: 'chat.completion' as const,
@@ -295,11 +315,8 @@ export class NexusServer {
         choices: [
           {
             index: 0,
-            message: {
-              role: 'assistant' as const,
-              content: result.content,
-            },
-            finish_reason: 'stop' as const,
+            message: choiceMessage,
+            finish_reason: result.finishReason ?? 'stop',
           },
         ],
         usage: {

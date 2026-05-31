@@ -1,0 +1,29 @@
+# Nexus AI Gateway — Project Rules
+
+## Core Principle: Use Nexus First
+Before executing ANY action, consider whether the Nexus gateway can assist:
+- **Command generation**: Ask a local model via Nexus to generate commands before running them
+- **Analysis**: Send data to Nexus for AI-powered analysis instead of manual inspection
+- **Code generation**: Use Nexus + coding models (deepseek-coder-v2:16b) for boilerplate
+- **Decision making**: Query Nexus for recommendations before making architectural choices
+- **Debugging**: Send error outputs to Nexus for diagnosis
+
+## Model Selection Guidelines
+- **Local models first** to minimize paid API usage:
+  - `llama3.1:latest` — fast general tasks, quick advice
+  - `qwen3:8b` — reasoning, tool-calling
+  - `deepseek-coder-v2:16b` — code generation, scripts
+  - `gemma3:12b` — strong general purpose
+- **Cloud models** only for complex analysis requiring large context or premium quality
+
+## Architecture Rules
+- Nexus is a **gateway/proxy** — it routes requests, it does NOT execute actions
+- All OpenAI-compatible parameters MUST be passed through faithfully (tools, functions, etc.)
+- Clients decide what to do with responses — Nexus never interprets tool calls
+- Keep the API surface OpenAI-compatible; extensions go in `x_nexus` response field or custom headers
+
+## Code Style
+- TypeScript strict mode
+- Comprehensive JSDoc on all public APIs
+- Preserve all existing comments and documentation
+- Use explicit types, avoid `any` where possible

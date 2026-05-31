@@ -7,6 +7,55 @@
  * these types.
  */
 
+// ─── Tool / Function Calling ────────────────────────────────────────────────
+
+/**
+ * A function that a tool exposes to the model.
+ */
+export interface ToolFunction {
+  /** The name of the function. */
+  name: string;
+
+  /** A description of what the function does. */
+  description?: string;
+
+  /** JSON Schema object describing the function's parameters. */
+  parameters?: Record<string, unknown>;
+}
+
+/**
+ * A tool definition sent in a completion request.
+ *
+ * Currently only `function` type is supported (matching the OpenAI spec).
+ */
+export interface ToolDefinition {
+  /** The type of tool — currently always 'function'. */
+  type: 'function';
+
+  /** The function definition. */
+  function: ToolFunction;
+}
+
+/**
+ * A tool call returned by the model in its response.
+ */
+export interface ToolCall {
+  /** Unique identifier for this tool call. */
+  id: string;
+
+  /** The type of tool call — currently always 'function'. */
+  type: 'function';
+
+  /** The function the model wants to invoke. */
+  function: {
+    /** Name of the function to call. */
+    name: string;
+
+    /** JSON-encoded string of the arguments. */
+    arguments: string;
+  };
+}
+
 // ─── Chat Message ───────────────────────────────────────────────────────────
 
 /**
@@ -14,13 +63,23 @@
  *
  * Represents a single message in a conversation, identified by role.
  * Compatible with the OpenAI Chat Completions API and OpenRouter.
+ * Supports tool-calling flows via the 'tool' role and `tool_calls` field.
  */
 export interface ChatMessage {
   /** The role of the message author. */
-  role: 'system' | 'user' | 'assistant';
+  role: 'system' | 'user' | 'assistant' | 'tool';
 
-  /** The text content of the message. */
-  content: string;
+  /** The text content of the message. May be null for tool-call messages. */
+  content: string | null;
+
+  /** Tool calls requested by the assistant (present when role is 'assistant'). */
+  tool_calls?: ToolCall[];
+
+  /** The ID of the tool call this message is responding to (present when role is 'tool'). */
+  tool_call_id?: string;
+
+  /** The name of the tool (present when role is 'tool'). */
+  name?: string;
 }
 
 // ─── Completion Request / Response ──────────────────────────────────────────
@@ -50,6 +109,18 @@ export interface CompletionOptions {
   /** Whether to stream the response (server-sent events). */
   stream?: boolean;
 
+  /** Tool definitions available for the model to call. */
+  tools?: ToolDefinition[];
+
+  /**
+   * Controls which tools the model may call.
+   * - `'none'` — never call tools.
+   * - `'auto'` — model decides (default when tools are present).
+   * - `'required'` — model must call at least one tool.
+   * - `{ type: 'function', function: { name: string } }` — force a specific function.
+   */
+  toolChoice?: 'none' | 'auto' | 'required' | { type: 'function'; function: { name: string } };
+
   /** OpenRouter-specific: array of fallback model IDs tried in order. */
   fallbackModels?: string[];
 
@@ -64,8 +135,8 @@ export interface CompletionOptions {
  * token-usage statistics, measured latency, and optional cost data.
  */
 export interface CompletionResult {
-  /** The generated text content. */
-  content: string;
+  /** The generated text content. May be null if the model only returned tool calls. */
+  content: string | null;
 
   /** The model identifier that produced this completion. */
   model: string;
@@ -81,6 +152,12 @@ export interface CompletionResult {
 
   /** Optional cost breakdown if the provider reports pricing. */
   cost?: CostBreakdown;
+
+  /** Tool calls returned by the model (present when the model invokes tools). */
+  toolCalls?: ToolCall[];
+
+  /** The finish reason from the model (e.g. 'stop', 'tool_calls'). */
+  finishReason?: string;
 }
 
 // ─── Token Usage & Cost ─────────────────────────────────────────────────────

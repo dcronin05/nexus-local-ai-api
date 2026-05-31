@@ -227,6 +227,12 @@ export class OllamaProvider extends BaseAIProvider {
     if (options?.stop !== undefined) {
       body.stop = options.stop;
     }
+    if (options?.tools !== undefined && options.tools.length > 0) {
+      body.tools = options.tools;
+    }
+    if (options?.toolChoice !== undefined) {
+      body.tool_choice = options.toolChoice;
+    }
 
     const controller = new AbortController();
     const timeoutId = setTimeout(
@@ -260,7 +266,9 @@ export class OllamaProvider extends BaseAIProvider {
 
       // Extract content from the first choice (OpenAI format)
       const choice = responseBody.choices?.[0];
-      const content: string = choice?.message?.content ?? '';
+      const content: string | null = choice?.message?.content ?? null;
+      const toolCalls = choice?.message?.tool_calls;
+      const finishReason: string | undefined = choice?.finish_reason;
 
       // Extract usage
       const rawUsage = responseBody.usage ?? {};
@@ -278,6 +286,8 @@ export class OllamaProvider extends BaseAIProvider {
         provider: this.providerName,
         usage,
         latencyMs,
+        toolCalls,
+        finishReason,
       };
 
       return result;
